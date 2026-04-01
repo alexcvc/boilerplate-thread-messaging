@@ -1,0 +1,21 @@
+BasedOnStyle: Google
+ColumnLimit: 120
+NamespaceIndentation: Inner
+ReflowComments: false
+DerivePointerAlignment: false
+PointerAlignment: Left
+AllowShortBlocksOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortLambdasOnASingleLine: Empty
+AllowShortLoopsOnASingleLine: false
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '\/.*(\.h|\.hpp)>'
+    Priority: 3
+  - Regex: '\.h>'
+    Priority: 1
+  - Regex: '^<.*'
+    Priority: 2
+  - Regex: '"'
+    Priority: 4
