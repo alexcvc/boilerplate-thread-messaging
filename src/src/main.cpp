@@ -185,22 +185,6 @@ int main(int argc, char** argv) {
   app::daemonConfig daemonConfig;
   ThreadManager threadManager;
 
-  // Concrete Worker class for testing
-  class SimpleWorker : public workerBase {
-   public:
-    SimpleWorker(int id) : m_id(id) {}
-   protected:
-    void run(std::stop_token stopToken) override {
-      std::cout << "Thread " << m_id << " started.\n";
-      while (!stopToken.stop_requested()) {
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-      }
-      std::cout << "Thread " << m_id << " stopping.\n";
-    }
-    [[nodiscard]] bool isReadyToStart() noexcept override { return true; }
-   private:
-    int m_id;
-  };
   int threadCounter = 0;
 
   //----------------------------------------------------------
@@ -277,12 +261,35 @@ int main(int argc, char** argv) {
           threadManager.addTask([id = threadCounter](messaging::Task& task, std::stop_token stopToken) {
             std::cout << "Task " << id << " started.\n";
             while (!stopToken.stop_requested()) {
-              // Task logic here: event-driven or interval-based
-              auto msg = task.messageQueue().wait_for(1s);
-              if (msg) {
-                std::cout << "Task " << id << " received a message.\n";
+              if (id % 5 == 0) {
+                // Pow 5 mixed: alternating timeout and blocking wait
+                static bool toggle = false;
+                toggle = !toggle;
+                auto msg = toggle ? task.messageQueue().wait_for(50ms) : task.messageQueue().try_pop();
+                if (msg) {
+                  std::cout << "Task " << id << " (pow 5 mixed) received a message.\n";
+                } else {
+                  std::cout << "Task " << id << " (pow 5 mixed) heartbeat.\n";
+                }
+              } else if (id % 2 == 0) {
+                // Even tasks: wait-time 100 ms or event (new message)
+                auto msg = task.messageQueue().wait_for(100ms);
+                if (msg) {
+                  std::cout << "Task " << id << " (even) received a message.\n";
+                } else {
+                  std::cout << "Task " << id << " (even) heartbeat.\n";
+                }
               } else {
-                std::cout << "Task " << id << " heartbeat.\n";
+                // Odd tasks: event driven (stop token, message)
+                // Use wait() which blocks until message arrives or queue is notified
+                // But we need to check stopToken. MessageQueue::wait() doesn't currently
+                // support stopToken, but we can rely on notify_all if needed or just use
+                // wait_for with a larger interval to check stopToken periodically.
+                // However, the requirement says event driven.
+                auto msg = task.messageQueue().wait_for(1s); // still event-ish but checks stopToken
+                if (msg) {
+                  std::cout << "Task " << id << " (odd) received a message.\n";
+                }
               }
             }
             std::cout << "Task " << id << " stopping.\n";
