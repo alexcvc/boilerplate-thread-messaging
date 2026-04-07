@@ -42,3 +42,14 @@ struct DirectEvent {
   int counter;
   std::string info;
 };
+
+struct ObserverCommand {
+  enum class Type {
+    StopObserving,   ///< Pause event generation for durationSec seconds
+    StartObserving,  ///< Resume event generation after durationSec seconds
+    StressMode,      ///< Switch to 100 ms interval for 20 s, then revert to 2 s normal
+    SetNormalMode,   ///< Immediately exit stress; set interval to 1 s
+  };
+  Type type;
+  int durationSec{0};
+};

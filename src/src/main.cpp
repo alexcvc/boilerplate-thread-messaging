@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
+#include "memoryUtils.hpp"
 
 #include "daemon.hpp"
 #include "daemonConfig.hpp"
@@ -23,7 +24,7 @@ using namespace std::chrono_literals;
 //----------------------------------------------------------------------------
 // Typedefs, enums, unions, variables
 //----------------------------------------------------------------------------
-enum class handleConsoleType { none, exit, stop, restart, terminate };
+enum class handleConsoleType { none, exit, stop, restart, terminate, stopObserving, startObserving, stressMode, setNormalMode };
 
 struct TaskEvent {
   std::mutex event_mutex;
@@ -156,6 +157,14 @@ handleConsoleType HandleConsole() {
       return handleConsoleType::restart;
     case 't':
       return handleConsoleType::terminate;
+    case 'p':
+      return handleConsoleType::stopObserving;
+    case 'o':
+      return handleConsoleType::startObserving;
+    case 'x':
+      return handleConsoleType::stressMode;
+    case 'n':
+      return handleConsoleType::setNormalMode;
     case 'v':
       ShowVersion(program_invocation_short_name);
       break;
@@ -166,6 +175,10 @@ handleConsoleType HandleConsole() {
       fprintf(stderr, " s   -  stop all threads.\n");
       fprintf(stderr, " r   -  restart all threads.\n");
       fprintf(stderr, " t   -  terminate (stop & clear) all threads.\n");
+      fprintf(stderr, " p   -  stop observing for 15 sec.\n");
+      fprintf(stderr, " o   -  start observing in 5 sec.\n");
+      fprintf(stderr, " x   -  stress mode (100 ms / 20 s, then auto-revert to 2 s).\n");
+      fprintf(stderr, " n   -  set normal mode (exit stress, 1 s interval).\n");
       fprintf(stderr, " v   -  version\n");
       fprintf(stderr, " h|? -  this information.\n");
       break;
@@ -183,8 +196,6 @@ int main(int argc, char** argv) {
   std::stop_source stopAppContext;                ///< stop token for the main loop
   app::daemonConfig daemonConfig;
   ThreadManager threadManager;
-
-  int threadCounter = 0;
 
   //----------------------------------------------------------
   // set in daemon all handlers
@@ -266,6 +277,20 @@ int main(int argc, char** argv) {
           break;
         case handleConsoleType::terminate:
           threadManager.terminateAllThreads();
+          break;
+        case handleConsoleType::stopObserving:
+          threadManager.sendObserverCommand({ObserverCommand::Type::StopObserving, 15});
+          break;
+        case handleConsoleType::startObserving:
+          threadManager.sendObserverCommand({ObserverCommand::Type::StartObserving, 5});
+          break;
+        case handleConsoleType::stressMode:
+          utils::printMemoryUsage("Before Stress");
+          threadManager.sendStressModeCommand();
+          break;
+        case handleConsoleType::setNormalMode:
+          threadManager.sendNormalModeCommand();
+          utils::printMemoryUsage("After Stress (Manual)");
           break;
         case handleConsoleType::none:
         default:
