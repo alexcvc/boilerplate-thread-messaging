@@ -92,12 +92,12 @@ class ObserverIncomingThread : public TaskBase {
   void applyCommand(const ObserverCommand& cmd) {
     switch (cmd.type) {
       case ObserverCommand::Type::StopObserving:
-        m_pauseUntil = std::chrono::steady_clock::now() + std::chrono::seconds(cmd.durationSec);
-        safe_print("[OI] pause ", cmd.durationSec, "s");
+        m_pauseUntil = std::chrono::steady_clock::now() + cmd.durationSec;
+        safe_print("[OI] pause ", cmd.durationSec.count(), "s");
         break;
       case ObserverCommand::Type::StartObserving:
-        m_pauseUntil = std::chrono::steady_clock::now() + std::chrono::seconds(cmd.durationSec);
-        safe_print("[OI] resume in ", cmd.durationSec, "s");
+        m_pauseUntil = std::chrono::steady_clock::now() + cmd.durationSec;
+        safe_print("[OI] resume in ", cmd.durationSec.count(), "s");
         break;
       case ObserverCommand::Type::StressMode:
         m_mode = ObserverMode::Stress;

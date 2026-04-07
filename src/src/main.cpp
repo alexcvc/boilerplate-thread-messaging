@@ -289,10 +289,10 @@ int main(int argc, char** argv) {
           threadManager.terminateAllThreads();
           break;
         case handleConsoleType::stopObserving:
-          threadManager.sendObserverCommand({ObserverCommand::Type::StopObserving});
+          threadManager.sendObserverCommand({ObserverCommand::Type::StopObserving, std::chrono::seconds{60}});
           break;
         case handleConsoleType::startObserving:
-          threadManager.sendObserverCommand({ObserverCommand::Type::StartObserving});
+          threadManager.sendObserverCommand({ObserverCommand::Type::StartObserving, std::chrono::seconds{1}});
           break;
         case handleConsoleType::stressMode:
           utils::printMemoryUsage("Before Stress");

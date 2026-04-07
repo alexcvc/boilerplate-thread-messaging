@@ -65,12 +65,12 @@ class ThreadManager : public workerBase {
     bool ok = m_observerIncoming->sendCommand(cmd);
     switch (cmd.type) {
       case ObserverCommand::Type::StopObserving:
-        std::cout << "[TM] StopObserving " << cmd.durationSec << "s  → " << (ok ? "sent" : "FAILED (buffer full)")
-                  << std::endl;
+        std::cout << "[TM] StopObserving " << cmd.durationSec.count() << "s  → "
+                  << (ok ? "sent" : "FAILED (buffer full)") << std::endl;
         break;
       case ObserverCommand::Type::StartObserving:
-        std::cout << "[TM] StartObserving in " << cmd.durationSec << "s  → " << (ok ? "sent" : "FAILED (buffer full)")
-                  << std::endl;
+        std::cout << "[TM] StartObserving in " << cmd.durationSec.count() << "s  → "
+                  << (ok ? "sent" : "FAILED (buffer full)") << std::endl;
         break;
       default:
         break;
