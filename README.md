@@ -1,12 +1,10 @@
-# Thread-Safe Messaging Library
+# Thread-Safe Messaging for Asynchronous Processing
 
-A C++20 boilerplate for type-safe inter-thread message passing built around a 5-thread processing chain prototype.
-
----
+A C++20 boilerplate for type-safe inter-thread message passing built around n-thread processing chain prototype.
 
 ## Architecture Overview
 
-The library is structured in two layers:
+The code is structured in two layers:
 
 | Layer                     | Location                                           | Purpose                       |
 |---------------------------|----------------------------------------------------|-------------------------------|
@@ -36,9 +34,7 @@ The library is structured in two layers:
 `messaging::Task` is a concrete `TaskBase` that accepts a lambda as its run function, useful for ad-hoc threads without a dedicated
 subclass.
 
----
-
-## 5-Thread Messaging Chain
+## N-Threads Messaging Chain
 
 ### Data Types (`src/include/dataTypes.hpp`)
 
@@ -106,7 +102,6 @@ When running in foreground mode (`-F` / no `-D`), stdin accepts single-key comma
 | `n`       | Set normal mode: exit stress immediately, switch to 500 ms interval           |
 | `v`       | Print version                                                                 |
 
----
 
 ## Message Flow Diagrams
 
@@ -196,8 +191,6 @@ Notable non-linear paths:
 - **Mirror feedback loop**: `ApplicationObserverThread → ObserverIncomingThread` via `MirrorEvent`
 - **Out-of-band control**: `ThreadManager → ObserverIncomingThread` via SPSC `ObserverCommand` ring buffer (separate from the `MessageQueue`
   path)
-
----
 
 ## Build & Run
 
