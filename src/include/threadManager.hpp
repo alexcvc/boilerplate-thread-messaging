@@ -12,7 +12,9 @@
 class ThreadManager : public workerBase {
  public:
   ThreadManager() = default;
-  ~ThreadManager() override { terminateAllThreads(); }
+  ~ThreadManager() override {
+    terminateAllThreads();
+  }
 
   /**
    * @brief Initializes the test thread chain (5 threads).
@@ -51,24 +53,37 @@ class ThreadManager : public workerBase {
    *        ThreadManager is the single producer; the observer thread is the consumer.
    * @param cmd  StopObserving{N}  — pause event generation for N seconds.
    *             StartObserving{N} — (re)start event generation after N seconds.
-   *             StressMode{}      — switch to 100 ms interval for 20 s, then revert.
-   *             SetNormalMode{}   — immediately exit stress; set interval to 1 s.
+   *             StressMode{}      — switch to 10 ms interval for 30 s, then revert.
+   *             SetNormalMode{}   — immediately exit stress; set interval to 500 ms.
    * @return false if the command buffer is full or the chain was not initialised.
    */
   bool sendObserverCommand(const ObserverCommand& cmd) {
     if (!m_observerIncoming) {
-      std::cerr << "[ThreadManager] sendObserverCommand: chain not initialised." << std::endl;
+      std::cerr << "[TM] sendObserverCommand: chain not initialised." << std::endl;
       return false;
     }
-    return m_observerIncoming->sendCommand(cmd);
+    bool ok = m_observerIncoming->sendCommand(cmd);
+    switch (cmd.type) {
+      case ObserverCommand::Type::StopObserving:
+        std::cout << "[TM] StopObserving " << cmd.durationSec << "s  → " << (ok ? "sent" : "FAILED (buffer full)")
+                  << std::endl;
+        break;
+      case ObserverCommand::Type::StartObserving:
+        std::cout << "[TM] StartObserving in " << cmd.durationSec << "s  → " << (ok ? "sent" : "FAILED (buffer full)")
+                  << std::endl;
+        break;
+      default:
+        break;
+    }
+    return ok;
   }
 
   /**
-   * @brief Activates stress mode: FileEvent every 100 ms for 20 s, then auto-reverts to 2 s normal.
+   * @brief Activates stress mode: FileEvent every 10 ms for 30 s, then auto-reverts to 2 s normal.
    * @return false if the chain was not initialised or the command buffer is full.
    */
   bool sendStressModeCommand() {
-    return sendObserverCommand({ObserverCommand::Type::StressMode, 0});
+    return sendObserverCommand({ObserverCommand::Type::StressMode});
   }
 
   /**
@@ -76,7 +91,7 @@ class ThreadManager : public workerBase {
    * @return false if the chain was not initialised or the command buffer is full.
    */
   bool sendNormalModeCommand() {
-    return sendObserverCommand({ObserverCommand::Type::SetNormalMode, 0});
+    return sendObserverCommand({ObserverCommand::Type::SetNormalMode});
   }
 
   /**
@@ -84,7 +99,8 @@ class ThreadManager : public workerBase {
    * @param task A shared pointer to the task.
    */
   void addTask(std::shared_ptr<messaging::TaskBase> task) {
-    if (!task) return;
+    if (!task)
+      return;
     std::lock_guard<std::mutex> lock(m_threadsMutex);
     if (task->start()) {
       m_tasks.push_back(std::move(task));

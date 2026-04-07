@@ -1,12 +1,13 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
 #include <string>
-#include <vector>
 
 struct FileEvent {
   std::string fileName;
   uint64_t fileSize;
+  std::chrono::steady_clock::time_point sendTime{};  ///< stamped by OI, read by RT for chain duration
 };
 
 struct AppEvent {
@@ -48,8 +49,8 @@ struct ObserverCommand {
     StopObserving,   ///< Pause event generation for durationSec seconds
     StartObserving,  ///< Resume event generation after durationSec seconds
     StressMode,      ///< Switch to 100 ms interval for 20 s, then revert to 2 s normal
-    SetNormalMode,   ///< Immediately exit stress; set interval to 1 s
+    SetNormalMode,   ///< Immediately exit stress; set an interval to 500 ms
   };
   Type type;
-  int durationSec{0};
+  std::chrono::seconds durationSec{0};
 };

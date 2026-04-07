@@ -53,8 +53,7 @@ class TaskBase : public Receiver, public Sender, public workerBase {
 class Task : public TaskBase {
  public:
   using RunFunction = std::function<void(Task&, std::stop_token)>;
-  using OnMessageFunction =
-      std::function<void(Task&, const std::type_info&, const std::shared_ptr<MessageBase>&)>;
+  using OnMessageFunction = std::function<void(Task&, const std::type_info&, const std::shared_ptr<MessageBase>&)>;
 
   explicit Task(RunFunction runFunc, OnMessageFunction onMsgFunc = nullptr)
       : TaskBase(), m_runFunc(std::move(runFunc)), m_onMsgFunc(std::move(onMsgFunc)) {

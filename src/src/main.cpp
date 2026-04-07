@@ -9,10 +9,10 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
-#include "memoryUtils.hpp"
 
 #include "daemon.hpp"
 #include "daemonConfig.hpp"
+#include "memoryUtils.hpp"
 #include "testThreads.hpp"
 #include "threadManager.hpp"
 
@@ -24,7 +24,17 @@ using namespace std::chrono_literals;
 //----------------------------------------------------------------------------
 // Typedefs, enums, unions, variables
 //----------------------------------------------------------------------------
-enum class handleConsoleType { none, exit, stop, restart, terminate, stopObserving, startObserving, stressMode, setNormalMode };
+enum class handleConsoleType {
+  none,
+  exit,
+  stop,
+  restart,
+  terminate,
+  stopObserving,
+  startObserving,
+  stressMode,
+  setNormalMode
+};
 
 struct TaskEvent {
   std::mutex event_mutex;
@@ -175,8 +185,8 @@ handleConsoleType HandleConsole() {
       fprintf(stderr, " s   -  stop all threads.\n");
       fprintf(stderr, " r   -  restart all threads.\n");
       fprintf(stderr, " t   -  terminate (stop & clear) all threads.\n");
-      fprintf(stderr, " p   -  stop observing for 15 sec.\n");
-      fprintf(stderr, " o   -  start observing in 5 sec.\n");
+      fprintf(stderr, " p   -  stop observing for 60 sec.\n");
+      fprintf(stderr, " o   -  start observing in 1 sec.\n");
       fprintf(stderr, " x   -  stress mode (100 ms / 20 s, then auto-revert to 2 s).\n");
       fprintf(stderr, " n   -  set normal mode (exit stress, 1 s interval).\n");
       fprintf(stderr, " v   -  version\n");
@@ -279,10 +289,10 @@ int main(int argc, char** argv) {
           threadManager.terminateAllThreads();
           break;
         case handleConsoleType::stopObserving:
-          threadManager.sendObserverCommand({ObserverCommand::Type::StopObserving, 15});
+          threadManager.sendObserverCommand({ObserverCommand::Type::StopObserving});
           break;
         case handleConsoleType::startObserving:
-          threadManager.sendObserverCommand({ObserverCommand::Type::StartObserving, 5});
+          threadManager.sendObserverCommand({ObserverCommand::Type::StartObserving});
           break;
         case handleConsoleType::stressMode:
           utils::printMemoryUsage("Before Stress");

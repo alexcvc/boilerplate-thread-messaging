@@ -129,8 +129,9 @@ class workerBase {
   template <typename Rep, typename Period, typename Pred>
   bool waitFor(std::stop_token stopToken, std::chrono::duration<Rep, Period> timeout, Pred&& pred) {
     std::unique_lock lock(m_waitMutex);
-    return m_waitCv.wait_for(lock, timeout,
-                             [&] { return stopToken.stop_requested() || std::forward<Pred>(pred)(); });
+    return m_waitCv.wait_for(lock, timeout, [&] {
+      return stopToken.stop_requested() || std::forward<Pred>(pred)();
+    });
   }
 
   // Raw primitives — prefer waitFor() over locking these directly.
