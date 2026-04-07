@@ -12,6 +12,7 @@
 
 #include "daemon.hpp"
 #include "daemonConfig.hpp"
+#include "testThreads.hpp"
 #include "threadManager.hpp"
 
 using namespace std::chrono_literals;
@@ -22,12 +23,7 @@ using namespace std::chrono_literals;
 //----------------------------------------------------------------------------
 // Typedefs, enums, unions, variables
 //----------------------------------------------------------------------------
-enum class handleConsoleType {
-  none,
-  exit,
-  addThread,
-  stopThread,
-};
+enum class handleConsoleType { none, exit, stop, restart, terminate };
 
 struct TaskEvent {
   std::mutex event_mutex;
@@ -154,10 +150,12 @@ handleConsoleType HandleConsole() {
   switch (key) {
     case 'q':
       return handleConsoleType::exit;
-    case 'a':
-      return handleConsoleType::addThread;
     case 's':
-      return handleConsoleType::stopThread;
+      return handleConsoleType::stop;
+    case 'r':
+      return handleConsoleType::restart;
+    case 't':
+      return handleConsoleType::terminate;
     case 'v':
       ShowVersion(program_invocation_short_name);
       break;
@@ -165,8 +163,9 @@ handleConsoleType HandleConsole() {
     case 'h':
       fprintf(stderr, "Test console:\n");
       fprintf(stderr, " q   -  quit from application.\n");
-      fprintf(stderr, " a   -  add a new worker thread.\n");
-      fprintf(stderr, " s   -  stop the last added worker thread.\n");
+      fprintf(stderr, " s   -  stop all threads.\n");
+      fprintf(stderr, " r   -  restart all threads.\n");
+      fprintf(stderr, " t   -  terminate (stop & clear) all threads.\n");
       fprintf(stderr, " v   -  version\n");
       fprintf(stderr, " h|? -  this information.\n");
       break;
@@ -181,7 +180,7 @@ handleConsoleType HandleConsole() {
  */
 int main(int argc, char** argv) {
   app::daemon& daemon = app::daemon::instance();  ///< The daemon is a singleton
-  std::stop_source stopAppContext;             ///< stop token for the main loop
+  std::stop_source stopAppContext;                ///< stop token for the main loop
   app::daemonConfig daemonConfig;
   ThreadManager threadManager;
 
@@ -230,6 +229,9 @@ int main(int argc, char** argv) {
   //----------------------------------------------------------
   // start application workers
   //----------------------------------------------------------
+
+  threadManager.initTestChain();
+
   if (!daemon.startAll()) {
     std::cerr << "Error starting the daemon." << std::endl;
     return EXIT_FAILURE;
@@ -256,54 +258,14 @@ int main(int argc, char** argv) {
         case handleConsoleType::exit:
           daemon.setState(app::daemon::State::Stop);
           break;
-        case handleConsoleType::addThread:
-          std::cout << "Adding thread " << ++threadCounter << "...\n";
-          threadManager.addTask([id = threadCounter](messaging::Task& task, std::stop_token stopToken) {
-            std::cout << "Task " << id << " started.\n";
-            while (!stopToken.stop_requested()) {
-              if (id % 5 == 0) {
-                // Pow 5 mixed: alternating timeout and blocking wait
-                static bool toggle = false;
-                toggle = !toggle;
-                auto msg = toggle ? task.messageQueue().wait_for(50ms) : task.messageQueue().try_pop();
-                if (msg) {
-                  std::cout << "Task " << id << " (pow 5 mixed) received a message.\n";
-                } else {
-                  std::cout << "Task " << id << " (pow 5 mixed) heartbeat.\n";
-                }
-              } else if (id % 2 == 0) {
-                // Even tasks: wait-time 100 ms or event (new message)
-                auto msg = task.messageQueue().wait_for(100ms);
-                if (msg) {
-                  std::cout << "Task " << id << " (even) received a message.\n";
-                } else {
-                  std::cout << "Task " << id << " (even) heartbeat.\n";
-                }
-              } else {
-                // Odd tasks: event driven (stop token, message)
-                // Use wait() which blocks until message arrives or queue is notified
-                // But we need to check stopToken. MessageQueue::wait() doesn't currently
-                // support stopToken, but we can rely on notify_all if needed or just use
-                // wait_for with a larger interval to check stopToken periodically.
-                // However, the requirement says event driven.
-                auto msg = task.messageQueue().wait_for(1s); // still event-ish but checks stopToken
-                if (msg) {
-                  std::cout << "Task " << id << " (odd) received a message.\n";
-                }
-              }
-            }
-            std::cout << "Task " << id << " stopping.\n";
-          });
-          std::cout << "Total managed threads: " << threadManager.getThreadCount() << "\n";
+        case handleConsoleType::stop:
+          threadManager.stopAllThreads();
           break;
-        case handleConsoleType::stopThread:
-          if (threadManager.getThreadCount() > 0) {
-            std::cout << "Stopping last thread...\n";
-            threadManager.stopLastThread();
-            std::cout << "Total managed threads: " << threadManager.getThreadCount() << "\n";
-          } else {
-            std::cout << "No threads to stop.\n";
-          }
+        case handleConsoleType::restart:
+          threadManager.restartAllThreads();
+          break;
+        case handleConsoleType::terminate:
+          threadManager.terminateAllThreads();
           break;
         case handleConsoleType::none:
         default:

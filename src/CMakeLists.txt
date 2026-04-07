@@ -12,7 +12,8 @@ set(${TargetName}_HDR
    include/messaging/messageReceiver.hpp
    include/messaging/messageBase.hpp
    include/messaging/messageQueue.hpp
-   include/messaging/task.hpp
+   include/taskBase.hpp
+   include/testThreads.hpp
    include/threading/spScRingBuffer.hpp
    include/threading/threadSafeQueue.hpp
    include/time/stopTimer.hpp
@@ -28,6 +29,7 @@ add_executable(${TargetName}
    ${${TargetName}_SRC}
    ${${TargetName}_HDR}
    include/threadManager.hpp
+   include/dataTypes.hpp
 )
 
 target_link_options(${TargetName}

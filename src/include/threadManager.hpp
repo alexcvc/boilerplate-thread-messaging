@@ -1,16 +1,47 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <vector>
 
 #include "taskBase.hpp"
+#include "testThreads.hpp"
 #include "workerBase.hpp"
 
 class ThreadManager : public workerBase {
  public:
   ThreadManager() = default;
-  ~ThreadManager() override { stopAllThreads(); }
+  ~ThreadManager() override { terminateAllThreads(); }
+
+  /**
+   * @brief Initializes the test thread chain (5 threads).
+   */
+  void initTestChain() {
+    // Create the 5 test threads
+    auto observerIncoming = std::make_shared<messaging::ObserverIncomingThread>();
+    auto appObserver = std::make_shared<messaging::ApplicationObserverThread>();
+    auto processing = std::make_shared<messaging::ProcessingThread>();
+    auto transformation = std::make_shared<messaging::TransformationThread>();
+    auto result = std::make_shared<messaging::ResultThread>();
+
+    // Link them
+    observerIncoming->setNext(appObserver->makeSender());
+    observerIncoming->setDirectToProcessing(processing->makeSender());
+    appObserver->setNext(processing->makeSender());
+    appObserver->setMirror(observerIncoming->makeSender());
+    processing->setNext(transformation->makeSender());
+    transformation->setNext(result->makeSender());
+
+    // Add to ThreadManager
+    addTask(observerIncoming);
+    addTask(appObserver);
+    addTask(processing);
+    addTask(transformation);
+    addTask(result);
+
+    std::cout << "[ThreadManager] Test chain initialized with 5 threads." << std::endl;
+  }
 
   /**
    * @brief Adds a task thread to the manager and starts it.
@@ -36,13 +67,35 @@ class ThreadManager : public workerBase {
   }
 
   /**
-   * @brief Stops and removes all managed threads.
+   * @brief Restarts all managed threads that are not currently running.
+   */
+  void restartAllThreads() {
+    std::lock_guard<std::mutex> lock(m_threadsMutex);
+    for (auto& task : m_tasks) {
+      if (!task->isRunning()) {
+        if (task->start()) {
+          std::cout << "[ThreadManager] Restarted thread." << std::endl;
+        }
+      }
+    }
+  }
+
+  /**
+   * @brief Stops all managed threads but keeps them in the manager.
    */
   void stopAllThreads() {
     std::lock_guard<std::mutex> lock(m_threadsMutex);
     for (auto& task : m_tasks) {
       task->stopAndWait();
     }
+  }
+
+  /**
+   * @brief Stops all managed threads and removes them from the manager.
+   */
+  void terminateAllThreads() {
+    stopAllThreads();
+    std::lock_guard<std::mutex> lock(m_threadsMutex);
     m_tasks.clear();
   }
 
