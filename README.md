@@ -1,4 +1,6 @@
-# Thread-Safe Messaging for Asynchronous Processing
+[![CMake on a single platform](https://github.com/alexcvc/boilerplate-thread-messaging/actions/workflows/cmake-single-platform.yml/badge.svg)](https://github.com/alexcvc/boilerplate-thread-messaging/actions/workflows/cmake-single-platform.yml)
+
+# High-performance, thread-safe messaging for asynchronous processing
 
 A C++20 boilerplate for type-safe inter-thread message passing built around n-thread processing chain prototype.
 
