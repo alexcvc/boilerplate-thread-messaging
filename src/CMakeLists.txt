@@ -27,6 +27,7 @@ set(${TargetName}_HDR
 add_executable(${TargetName}
    ${${TargetName}_SRC}
    ${${TargetName}_HDR}
+   include/threadManager.hpp
 )
 
 target_link_options(${TargetName}

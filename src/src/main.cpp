@@ -12,6 +12,7 @@
 
 #include "Daemon.hpp"
 #include "DaemonConfig.hpp"
+#include "threadManager.hpp"
 
 using namespace std::chrono_literals;
 //----------------------------------------------------------------------------
@@ -24,6 +25,8 @@ using namespace std::chrono_literals;
 enum class handleConsoleType {
   none,
   exit,
+  addThread,
+  stopThread,
 };
 
 struct TaskEvent {
@@ -151,6 +154,10 @@ handleConsoleType HandleConsole() {
   switch (key) {
     case 'q':
       return handleConsoleType::exit;
+    case 'a':
+      return handleConsoleType::addThread;
+    case 's':
+      return handleConsoleType::stopThread;
     case 'v':
       ShowVersion(program_invocation_short_name);
       break;
@@ -158,6 +165,8 @@ handleConsoleType HandleConsole() {
     case 'h':
       fprintf(stderr, "Test console:\n");
       fprintf(stderr, " q   -  quit from application.\n");
+      fprintf(stderr, " a   -  add a new worker thread.\n");
+      fprintf(stderr, " s   -  stop the last added worker thread.\n");
       fprintf(stderr, " v   -  version\n");
       fprintf(stderr, " h|? -  this information.\n");
       break;
@@ -174,15 +183,36 @@ int main(int argc, char** argv) {
   app::Daemon& daemon = app::Daemon::instance();  ///< The daemon is a singleton
   std::stop_source stopAppContext;             ///< stop token for the main loop
   app::DaemonConfig daemonConfig;
+  ThreadManager threadManager;
+
+  // Concrete Worker class for testing
+  class SimpleWorker : public WorkerBase {
+   public:
+    SimpleWorker(int id) : m_id(id) {}
+   protected:
+    void run(std::stop_token stopToken) override {
+      std::cout << "Thread " << m_id << " started.\n";
+      while (!stopToken.stop_requested()) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+      }
+      std::cout << "Thread " << m_id << " stopping.\n";
+    }
+    [[nodiscard]] bool isReadyToStart() noexcept override { return true; }
+   private:
+    int m_id;
+  };
+  int threadCounter = 0;
+
   //----------------------------------------------------------
   // set in daemon all handlers
   //----------------------------------------------------------
   // start
   daemon.setStartFunction([&]() {
-    return true;
+    return threadManager.start();
   });
   // stop
   daemon.setCloseFunction([&]() {
+    threadManager.stopAndWait();
     return true;
   });
   // reload
@@ -241,6 +271,20 @@ int main(int argc, char** argv) {
       switch (result) {
         case handleConsoleType::exit:
           daemon.setState(app::Daemon::State::Stop);
+          break;
+        case handleConsoleType::addThread:
+          std::cout << "Adding thread " << ++threadCounter << "...\n";
+          threadManager.addThread(std::make_shared<SimpleWorker>(threadCounter));
+          std::cout << "Total managed threads: " << threadManager.getThreadCount() << "\n";
+          break;
+        case handleConsoleType::stopThread:
+          if (threadManager.getThreadCount() > 0) {
+            std::cout << "Stopping last thread...\n";
+            threadManager.stopLastThread();
+            std::cout << "Total managed threads: " << threadManager.getThreadCount() << "\n";
+          } else {
+            std::cout << "No threads to stop.\n";
+          }
           break;
         case handleConsoleType::none:
         default:
