@@ -4,25 +4,35 @@
 #include <mutex>
 #include <vector>
 
+#include "taskBase.hpp"
 #include "workerBase.hpp"
 
-class ThreadManager: public workerBase {
+class ThreadManager : public workerBase {
  public:
   ThreadManager() = default;
-  ~ThreadManager() override {
-    stopAllThreads();
+  ~ThreadManager() override { stopAllThreads(); }
+
+  /**
+   * @brief Adds a task thread to the manager and starts it.
+   * @param task A shared pointer to the task.
+   */
+  void addTask(std::shared_ptr<messaging::TaskBase> task) {
+    if (!task) return;
+    std::lock_guard<std::mutex> lock(m_threadsMutex);
+    if (task->start()) {
+      m_tasks.push_back(std::move(task));
+    }
   }
 
   /**
-   * @brief Adds a worker thread to the manager and starts it.
-   * @param worker A shared pointer to the worker thread.
+   * @brief Creates and adds a task thread with a lambda run function.
+   * @param runFunc The lambda function to run in the thread.
+   * @return A shared pointer to the created task.
    */
-  void addThread(std::shared_ptr<workerBase> worker) {
-    if (!worker) return;
-    std::lock_guard<std::mutex> lock(m_threadsMutex);
-    if (worker->start()) {
-      m_threads.push_back(std::move(worker));
-    }
+  std::shared_ptr<messaging::Task> addTask(messaging::Task::RunFunction runFunc) {
+    auto task = std::make_shared<messaging::Task>(std::move(runFunc));
+    addTask(task);
+    return task;
   }
 
   /**
@@ -30,10 +40,10 @@ class ThreadManager: public workerBase {
    */
   void stopAllThreads() {
     std::lock_guard<std::mutex> lock(m_threadsMutex);
-    for (auto& worker : m_threads) {
-      worker->stopAndWait();
+    for (auto& task : m_tasks) {
+      task->stopAndWait();
     }
-    m_threads.clear();
+    m_tasks.clear();
   }
 
   /**
@@ -41,9 +51,9 @@ class ThreadManager: public workerBase {
    */
   void stopLastThread() {
     std::lock_guard<std::mutex> lock(m_threadsMutex);
-    if (!m_threads.empty()) {
-      m_threads.back()->stopAndWait();
-      m_threads.pop_back();
+    if (!m_tasks.empty()) {
+      m_tasks.back()->stopAndWait();
+      m_tasks.pop_back();
     }
   }
 
@@ -53,14 +63,14 @@ class ThreadManager: public workerBase {
    */
   size_t getThreadCount() const {
     std::lock_guard<std::mutex> lock(m_threadsMutex);
-    return m_threads.size();
+    return m_tasks.size();
   }
 
  protected:
   void run(std::stop_token stopToken) override {
     while (!stopToken.stop_requested()) {
       // Implement the thread's main work here
-      std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate work
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));  // Simulate work
     }
   }
 
@@ -70,6 +80,6 @@ class ThreadManager: public workerBase {
   }
 
  private:
-  std::vector<std::shared_ptr<workerBase>> m_threads;
+  std::vector<std::shared_ptr<messaging::TaskBase>> m_tasks;
   mutable std::mutex m_threadsMutex;
 };

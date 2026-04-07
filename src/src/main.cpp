@@ -274,7 +274,19 @@ int main(int argc, char** argv) {
           break;
         case handleConsoleType::addThread:
           std::cout << "Adding thread " << ++threadCounter << "...\n";
-          threadManager.addThread(std::make_shared<SimpleWorker>(threadCounter));
+          threadManager.addTask([id = threadCounter](messaging::Task& task, std::stop_token stopToken) {
+            std::cout << "Task " << id << " started.\n";
+            while (!stopToken.stop_requested()) {
+              // Task logic here: event-driven or interval-based
+              auto msg = task.messageQueue().wait_for(1s);
+              if (msg) {
+                std::cout << "Task " << id << " received a message.\n";
+              } else {
+                std::cout << "Task " << id << " heartbeat.\n";
+              }
+            }
+            std::cout << "Task " << id << " stopping.\n";
+          });
           std::cout << "Total managed threads: " << threadManager.getThreadCount() << "\n";
           break;
         case handleConsoleType::stopThread:

@@ -12,6 +12,7 @@ set(${TargetName}_HDR
    include/messaging/messageReceiver.hpp
    include/messaging/messageBase.hpp
    include/messaging/messageQueue.hpp
+   include/messaging/task.hpp
    include/threading/spScRingBuffer.hpp
    include/threading/threadSafeQueue.hpp
    include/time/stopTimer.hpp
