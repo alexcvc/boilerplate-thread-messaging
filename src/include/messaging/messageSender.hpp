@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <typeinfo>
 
@@ -124,7 +125,7 @@ class Sender {
       return true;
     }
 
-    spdlog::error("Sender: no queue associated with the sender of message {}", messageTypeName);
+    std::cerr << "Sender: no queue for message " << messageTypeName << '\n';
     return false;
   }
 };

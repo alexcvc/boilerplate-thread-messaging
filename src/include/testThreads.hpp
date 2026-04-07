@@ -80,7 +80,7 @@ class ObserverIncomingThread : public TaskBase {
         m_next->Send(event);
       }
       if (m_directToProcessing.has_value()) {
-        DirectEvent de{count, "direct#" + std::to_string(count)};
+        DirectEvent de{count};
         m_directToProcessing->Send(de);
       }
     }
@@ -137,9 +137,7 @@ class ApplicationObserverThread : public TaskBase {
   }
 
  protected:
-  void onPostMessageReceived(const std::type_info&, const std::shared_ptr<MessageBase>&) override {
-    wakeUp();
-  }
+  void onPostMessageReceived(const std::type_info&, const std::shared_ptr<MessageBase>&) override {}
 
   bool isReadyToStart() noexcept override {
     return true;
@@ -174,9 +172,7 @@ class ProcessingThread : public TaskBase {
   }
 
  protected:
-  void onPostMessageReceived(const std::type_info&, const std::shared_ptr<MessageBase>&) override {
-    wakeUp();
-  }
+  void onPostMessageReceived(const std::type_info&, const std::shared_ptr<MessageBase>&) override {}
 
   bool isReadyToStart() noexcept override {
     return true;
@@ -207,9 +203,7 @@ class TransformationThread : public TaskBase {
   }
 
  protected:
-  void onPostMessageReceived(const std::type_info&, const std::shared_ptr<MessageBase>&) override {
-    wakeUp();
-  }
+  void onPostMessageReceived(const std::type_info&, const std::shared_ptr<MessageBase>&) override {}
 
   bool isReadyToStart() noexcept override {
     return true;
@@ -236,9 +230,7 @@ class ResultThread : public TaskBase {
   ResultThread() : TaskBase() {}
 
  protected:
-  void onPostMessageReceived(const std::type_info&, const std::shared_ptr<MessageBase>&) override {
-    wakeUp();
-  }
+  void onPostMessageReceived(const std::type_info&, const std::shared_ptr<MessageBase>&) override {}
 
   bool isReadyToStart() noexcept override {
     return true;

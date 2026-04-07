@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <memory>
-#include <mutex>
 #include <vector>
 
 #include "taskBase.hpp"
@@ -31,12 +30,13 @@ class ThreadManager : public workerBase {
     m_observerIncoming = observerIncoming;
 
     // Link them
-    observerIncoming->setNext(appObserver->makeSender());
-    observerIncoming->setDirectToProcessing(processing->makeSender());
-    appObserver->setNext(processing->makeSender());
-    appObserver->setMirror(observerIncoming->makeSender());
-    processing->setNext(transformation->makeSender());
-    transformation->setNext(result->makeSender());
+    // notifyOnPost=false: MessageQueue::push() already calls notify_one(); no second wake needed
+    observerIncoming->setNext(appObserver->makeSender(false));
+    observerIncoming->setDirectToProcessing(processing->makeSender(false));
+    appObserver->setNext(processing->makeSender(false));
+    appObserver->setMirror(observerIncoming->makeSender(false));
+    processing->setNext(transformation->makeSender(false));
+    transformation->setNext(result->makeSender(false));
 
     // Add to ThreadManager
     addTask(observerIncoming);
@@ -101,7 +101,6 @@ class ThreadManager : public workerBase {
   void addTask(std::shared_ptr<messaging::TaskBase> task) {
     if (!task)
       return;
-    std::lock_guard<std::mutex> lock(m_threadsMutex);
     if (task->start()) {
       m_tasks.push_back(std::move(task));
     }
@@ -122,7 +121,6 @@ class ThreadManager : public workerBase {
    * @brief Restarts all managed threads that are not currently running.
    */
   void restartAllThreads() {
-    std::lock_guard<std::mutex> lock(m_threadsMutex);
     for (auto& task : m_tasks) {
       if (!task->isRunning()) {
         if (task->start()) {
@@ -136,7 +134,6 @@ class ThreadManager : public workerBase {
    * @brief Stops all managed threads but keeps them in the manager.
    */
   void stopAllThreads() {
-    std::lock_guard<std::mutex> lock(m_threadsMutex);
     for (auto& task : m_tasks) {
       task->stopAndWait();
     }
@@ -147,7 +144,6 @@ class ThreadManager : public workerBase {
    */
   void terminateAllThreads() {
     stopAllThreads();
-    std::lock_guard<std::mutex> lock(m_threadsMutex);
     m_tasks.clear();
   }
 
@@ -155,7 +151,6 @@ class ThreadManager : public workerBase {
    * @brief Stops and removes the last added thread.
    */
   void stopLastThread() {
-    std::lock_guard<std::mutex> lock(m_threadsMutex);
     if (!m_tasks.empty()) {
       m_tasks.back()->stopAndWait();
       m_tasks.pop_back();
@@ -166,8 +161,7 @@ class ThreadManager : public workerBase {
    * @brief Gets the number of managed threads.
    * @return The number of threads.
    */
-  size_t getThreadCount() const {
-    std::lock_guard<std::mutex> lock(m_threadsMutex);
+  size_t getThreadCount() const noexcept {
     return m_tasks.size();
   }
 
@@ -185,7 +179,6 @@ class ThreadManager : public workerBase {
   }
 
  private:
-  std::vector<std::shared_ptr<messaging::TaskBase>> m_tasks;
-  mutable std::mutex m_threadsMutex;
+  std::vector<std::shared_ptr<messaging::TaskBase>> m_tasks;  // accessed from main thread only
   std::shared_ptr<messaging::ObserverIncomingThread> m_observerIncoming;
 };

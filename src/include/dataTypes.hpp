@@ -41,7 +41,6 @@ struct MirrorEvent {
 
 struct DirectEvent {
   int counter;
-  std::string info;
 };
 
 struct ObserverCommand {
