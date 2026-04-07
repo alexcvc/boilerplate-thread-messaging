@@ -1,15 +1,3 @@
-/* SPDX-License-Identifier: A-EBERLE */
-/****************************************************************************\
-**                   _        _____ _               _                      **
-**                  / \      | ____| |__   ___ _ __| | ___                 **
-**                 / _ \     |  _| | '_ \ / _ \ '__| |/ _ \                **
-**                / ___ \ _  | |___| |_) |  __/ |  | |  __/                **
-**               /_/   \_(_) |_____|_.__/ \___|_|  |_|\___|                **
-**                                                                         **
-*****************************************************************************
-** Copyright (c) 2010 - 2025 A. Eberle GmbH & Co. KG. All rights reserved. **
-\****************************************************************************/
-
 #pragma once
 
 #include <atomic>
@@ -19,7 +7,7 @@
 
 template <typename T>
 /**
- * @class SpscRingBuffer
+ * @class SpScRingBuffer
  * @brief A single-producer, single-consumer circular ring buffer implementation.
  *
  * This class provides a lock-free, single-producer, single-consumer ring buffer
@@ -28,7 +16,7 @@ template <typename T>
  *
  * @tparam T The type of elements stored in the ring buffer.
  */
-class SpscRingBuffer {
+class SpScRingBuffer {
   /**
    * @brief Default constructor for the SpscRingBuffer class.
    *
@@ -37,7 +25,7 @@ class SpscRingBuffer {
    * and marks the buffer as uninitialized.
    */
  public:
-  SpscRingBuffer() = default;
+  SpScRingBuffer() = default;
 
   /**
    * Initializes the ring buffer with the given capacity.

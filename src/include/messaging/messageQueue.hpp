@@ -6,7 +6,7 @@
 #include <mutex>
 #include <queue>
 
-#include "Message.hpp"
+#include "messageBase.hpp"
 #include "spdlog/spdlog.h"
 
 namespace messaging {

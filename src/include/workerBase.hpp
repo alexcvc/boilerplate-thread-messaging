@@ -7,16 +7,16 @@
 #include <stop_token>
 #include <thread>
 
-class WorkerBase {
+class workerBase {
  public:
-  WorkerBase() = default;
-  virtual ~WorkerBase() = default;
+  workerBase() = default;
+  virtual ~workerBase() = default;
 
   // Non-copyable, non-movable
-  WorkerBase(const WorkerBase&) = delete;
-  WorkerBase& operator=(const WorkerBase&) = delete;
-  WorkerBase(WorkerBase&&) = delete;
-  WorkerBase& operator=(WorkerBase&&) = delete;
+  workerBase(const workerBase&) = delete;
+  workerBase& operator=(const workerBase&) = delete;
+  workerBase(workerBase&&) = delete;
+  workerBase& operator=(workerBase&&) = delete;
 
   /**
    * @brief Starts the execution of the worker thread.

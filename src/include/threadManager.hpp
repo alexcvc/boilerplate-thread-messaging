@@ -1,11 +1,12 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <mutex>
-#include "WorkerBase.hpp"
+#include <vector>
 
-class ThreadManager: public WorkerBase {
+#include "workerBase.hpp"
+
+class ThreadManager: public workerBase {
  public:
   ThreadManager() = default;
   ~ThreadManager() override {
@@ -16,7 +17,7 @@ class ThreadManager: public WorkerBase {
    * @brief Adds a worker thread to the manager and starts it.
    * @param worker A shared pointer to the worker thread.
    */
-  void addThread(std::shared_ptr<WorkerBase> worker) {
+  void addThread(std::shared_ptr<workerBase> worker) {
     if (!worker) return;
     std::lock_guard<std::mutex> lock(m_threadsMutex);
     if (worker->start()) {
@@ -69,6 +70,6 @@ class ThreadManager: public WorkerBase {
   }
 
  private:
-  std::vector<std::shared_ptr<WorkerBase>> m_threads;
+  std::vector<std::shared_ptr<workerBase>> m_threads;
   mutable std::mutex m_threadsMutex;
 };

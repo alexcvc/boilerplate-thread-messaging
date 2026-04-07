@@ -4,7 +4,7 @@
 #include <memory>
 #include <typeinfo>
 
-#include "messaging/MessageQueue.hpp"
+#include "messaging/messageQueue.hpp"
 
 namespace messaging {
 

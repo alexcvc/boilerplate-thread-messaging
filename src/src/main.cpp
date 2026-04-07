@@ -10,8 +10,8 @@
 #include <iostream>
 #include <thread>
 
-#include "Daemon.hpp"
-#include "DaemonConfig.hpp"
+#include "daemon.hpp"
+#include "daemonConfig.hpp"
 #include "threadManager.hpp"
 
 using namespace std::chrono_literals;
@@ -98,7 +98,7 @@ void HandleOptionArgument(const char* option, const char* argument, const char* 
  * @param argv The array of command line argument strings.
  * @param config
  */
-static void ProcessCommandLine(int argc, char* argv[], app::DaemonConfig& config) {
+static void ProcessCommandLine(int argc, char* argv[], app::daemonConfig& config) {
   const char* help_options = "h?vD";
   const option long_options[] = {
       {"help", no_argument, nullptr, 0},
@@ -180,13 +180,13 @@ handleConsoleType HandleConsole() {
  * @brief This is the main entry point for the application.
  */
 int main(int argc, char** argv) {
-  app::Daemon& daemon = app::Daemon::instance();  ///< The daemon is a singleton
+  app::daemon& daemon = app::daemon::instance();  ///< The daemon is a singleton
   std::stop_source stopAppContext;             ///< stop token for the main loop
-  app::DaemonConfig daemonConfig;
+  app::daemonConfig daemonConfig;
   ThreadManager threadManager;
 
   // Concrete Worker class for testing
-  class SimpleWorker : public WorkerBase {
+  class SimpleWorker : public workerBase {
    public:
     SimpleWorker(int id) : m_id(id) {}
    protected:
@@ -270,7 +270,7 @@ int main(int argc, char** argv) {
       auto result = HandleConsole();
       switch (result) {
         case handleConsoleType::exit:
-          daemon.setState(app::Daemon::State::Stop);
+          daemon.setState(app::daemon::State::Stop);
           break;
         case handleConsoleType::addThread:
           std::cout << "Adding thread " << ++threadCounter << "...\n";

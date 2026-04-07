@@ -11,9 +11,9 @@
 
 namespace app {
 /**
- * @struct DaemonConfig
+ * @struct daemonConfig
  */
-struct DaemonConfig {
+struct daemonConfig {
   std::string pidFile{PACKAGE_PID};  ///< The path of the PID file
   bool isDaemon{false};              ///< Whether the process should run as a daemon
   std::string pathConfigFile{};      ///< The path of the configuration file
