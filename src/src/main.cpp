@@ -17,6 +17,9 @@
 #include "threadManager.hpp"
 
 using namespace std::chrono_literals;
+
+static const char* g_programName = "threadMsg";
+
 //----------------------------------------------------------------------------
 // Defines and Macros
 //----------------------------------------------------------------------------
@@ -176,7 +179,7 @@ handleConsoleType HandleConsole() {
     case 'n':
       return handleConsoleType::setNormalMode;
     case 'v':
-      ShowVersion(program_invocation_short_name);
+      ShowVersion(g_programName);
       break;
     case '?':
     case 'h':
@@ -202,6 +205,7 @@ handleConsoleType HandleConsole() {
  * @brief This is the main entry point for the application.
  */
 int main(int argc, char** argv) {
+  g_programName = argv[0];
   app::daemon& daemon = app::daemon::instance();  ///< The daemon is a singleton
   std::stop_source stopAppContext;                ///< stop token for the main loop
   app::daemonConfig daemonConfig;

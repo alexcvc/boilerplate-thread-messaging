@@ -1,5 +1,6 @@
 #include "daemon.hpp"
 
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <cerrno>
@@ -92,8 +93,17 @@ bool app::daemon::makeDaemon(const std::string& pidFileName) {
   if (!m_IsInitialized) {
     m_IsInitialized = true;
     m_PidFileName = pidFileName;
-    if (::daemon(0, 1) != 0) {
-      std::cerr << "Failed demonizing: " << strerror(errno) << std::endl;
+    // Equivalent to daemon(0, 1): fork, setsid, chdir("/"); keep stdio open.
+    pid_t pid = fork();
+    if (pid < 0) {
+      std::cerr << "Failed demonizing (fork): " << strerror(errno) << std::endl;
+    } else if (pid > 0) {
+      // Parent exits; child continues as daemon.
+      _exit(EXIT_SUCCESS);
+    } else if (setsid() < 0) {
+      std::cerr << "Failed demonizing (setsid): " << strerror(errno) << std::endl;
+    } else if (chdir("/") < 0) {
+      std::cerr << "Failed demonizing (chdir): " << strerror(errno) << std::endl;
     } else if (writePidToFile(pidFileName)) {
       m_Pid = getpid();
       return true;
