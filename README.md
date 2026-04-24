@@ -27,14 +27,48 @@ The code is structured in two layers:
 
 ### TaskBase and Task
 
-`messaging::TaskBase` combines `Receiver + Sender + workerBase` into a single base for all worker threads. Subclasses implement:
+#### `messaging::TaskBase`
 
-- `run(std::stop_token)` — main execution loop
-- `onPostMessageReceived()` — called immediately after a message is enqueued (used to wake the thread)
-- `isReadyToStart()` — precondition check before the thread launches
+`TaskBase` is the central abstract base for all worker threads. It composes three base classes:
 
-`messaging::Task` is a concrete `TaskBase` that accepts a lambda as its run function, useful for ad-hoc threads without a dedicated
-subclass.
+| Base         | Contribution                                                                                                                |
+|--------------|-----------------------------------------------------------------------------------------------------------------------------|
+| `Receiver`   | Owns a `MessageQueue`. Any `Sender` that holds a reference to this receiver can push typed messages into its queue.         |
+| `Sender`     | Holds a reference to another receiver's queue. Calling `Send<T>(args...)` constructs a `MessageWrapper<T>` and enqueues it. |
+| `workerBase` | Spawns and owns a `std::jthread`. Provides `start()`, `stop()`, `stopAndWait()`, `join()`, and `waitFor()`.                 |
+
+Subclasses must implement three pure-virtual methods:
+
+| Method                                                                  | Called by    | Purpose                                                                                                                                         |
+|-------------------------------------------------------------------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `run(std::stop_token)`                                                  | `workerBase` | Main thread loop. Poll the message queue and process work until `stopToken.stop_requested()`.                                                   |
+| `onPostMessageReceived(const std::type_info&, shared_ptr<MessageBase>)` | `Receiver`   | Post-push callback — invoked on the **sender's** thread immediately after a message is enqueued. Typically calls `wakeUp()` to unblock `run()`. |
+| `isReadyToStart()`                                                      | `workerBase` | Precondition guard checked inside `start()`. Return `false` to abort launch (e.g. required downstream not yet wired).                           |
+
+Lifecycle of a `TaskBase`:
+
+```
+addTask(task)
+  └─ task->start(managerToken)        // workerBase: spawns jthread, combines stop tokens
+       └─ run(combinedToken)          // subclass: loops until stop requested
+            ├─ queue.wait_for(...)    // blocks until message arrives or stop/timeout
+            └─ onPostMessageReceived  // called by sender thread on each push → wakeUp()
+```
+
+`TaskBase` is non-copyable and non-movable (enforced by both `workerBase` and `Receiver`).
+
+#### `messaging::Task`
+
+`Task` is a concrete `TaskBase` for ad-hoc threads that do not need a dedicated subclass. It accepts two callables at construction:
+
+| Parameter           | Type                                                                         | Required | Role                                                                            |
+|---------------------|------------------------------------------------------------------------------|----------|---------------------------------------------------------------------------------|
+| `RunFunction`       | `std::function<void(Task&, std::stop_token)>`                                | Yes      | Replaces the `run()` override; receives `*this` and the stop token.             |
+| `OnMessageFunction` | `std::function<void(Task&, const std::type_info&, shared_ptr<MessageBase>)>` | No       | Replaces `onPostMessageReceived()`; omit if the task does not receive messages. |
+
+`Task` also auto-wires itself as its own `Sender` during construction (`makeSender()`), so a `RunFunction` lambda can post messages back to
+the task's own queue without extra setup. The `messageQueue` member is exposed publicly so the lambda can call `wait_for` or `try_pop`
+directly.
 
 ## N-Threads Messaging Chain
 
@@ -103,7 +137,6 @@ When running in foreground mode (`-F` / no `-D`), stdin accepts single-key comma
 | `x`       | Activate stress mode: 10 ms interval for 20 s, then auto-revert to 1 s normal |
 | `n`       | Set normal mode: exit stress immediately, switch to 500 ms interval           |
 | `v`       | Print version                                                                 |
-
 
 ## Message Flow Diagrams
 

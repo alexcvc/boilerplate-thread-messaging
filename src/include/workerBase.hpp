@@ -19,10 +19,24 @@ class workerBase {
   workerBase& operator=(workerBase&&) = delete;
 
   /**
-   * @brief Starts the execution of the worker thread.
-   * @return true if the worker thread was successfully started; false otherwise.
+   * @brief Starts the worker thread.
+   *
+   * Spawns a `std::jthread` that calls `run()` and, on return, clears the running flag.
+   *
+   * Stop-token selection:
+   *  - If @p externalToken is valid (`stop_possible() == true`), it is passed directly to `run()`.
+   *    The thread then reacts to stop requests issued on the external source (e.g. a ThreadManager
+   *    stop source) rather than on the jthread's own internal source.
+   *  - If @p externalToken is empty (default), the jthread passes its own internal stop token to
+   *    `run()`, preserving the normal `stop()` / `stopAndWait()` behaviour.
+   *
+   * @param externalToken  Optional stop token from an owning manager.  Pass `{}` (default) for
+   *                       standalone workers that are stopped individually via `stop()`.
+   * @return true   Thread was created and is now running.
+   * @return false  Either `isReadyToStart()` returned false, the thread was already running, or
+   *                thread creation threw an exception.
    */
-  [[nodiscard]] bool start() noexcept {
+  [[nodiscard]] bool start(std::stop_token externalToken = {}) noexcept {
     if (!isReadyToStart()) {
       return false;
     }
@@ -37,8 +51,15 @@ class workerBase {
     };
 
     try {
-      m_thread = std::jthread([this, markStopped](std::stop_token stopToken) {
-        run(stopToken);
+      m_thread = std::jthread([this, markStopped, externalToken](std::stop_token internalToken) {
+        if (externalToken.stop_possible()) {
+          std::stop_source combined;
+          std::stop_callback cb1{internalToken, [&]() noexcept { combined.request_stop(); }};
+          std::stop_callback cb2{externalToken, [&]() noexcept { combined.request_stop(); }};
+          run(combined.get_token());
+        } else {
+          run(internalToken);
+        }
         markStopped();
       });
     } catch (...) {

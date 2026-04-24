@@ -95,13 +95,19 @@ class ThreadManager : public workerBase {
   }
 
   /**
+   * @brief Returns the manager's stop source so callers (e.g. main) can request a global stop.
+   */
+  std::stop_source& stopSource() noexcept { return m_stopSource; }
+
+  /**
    * @brief Adds a task thread to the manager and starts it.
+   *        The manager's stop token is forwarded so a global stop also stops this task.
    * @param task A shared pointer to the task.
    */
   void addTask(std::shared_ptr<messaging::TaskBase> task) {
     if (!task)
       return;
-    if (task->start()) {
+    if (task->start(m_stopSource.get_token())) {
       m_tasks.push_back(std::move(task));
     }
   }
@@ -121,9 +127,10 @@ class ThreadManager : public workerBase {
    * @brief Restarts all managed threads that are not currently running.
    */
   void restartAllThreads() {
+    m_stopSource = std::stop_source{};
     for (auto& task : m_tasks) {
       if (!task->isRunning()) {
-        if (task->start()) {
+        if (task->start(m_stopSource.get_token())) {
           std::cout << "[ThreadManager] Restarted thread." << std::endl;
         }
       }
@@ -134,8 +141,10 @@ class ThreadManager : public workerBase {
    * @brief Stops all managed threads but keeps them in the manager.
    */
   void stopAllThreads() {
+    m_stopSource.request_stop();
     for (auto& task : m_tasks) {
-      task->stopAndWait();
+      task->wakeUp();
+      task->join();
     }
   }
 
@@ -179,6 +188,7 @@ class ThreadManager : public workerBase {
   }
 
  private:
+  std::stop_source m_stopSource;
   std::vector<std::shared_ptr<messaging::TaskBase>> m_tasks;  // accessed from main thread only
   std::shared_ptr<messaging::ObserverIncomingThread> m_observerIncoming;
 };

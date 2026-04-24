@@ -202,7 +202,6 @@ handleConsoleType HandleConsole() {
 int main(int argc, char** argv) {
   g_programName = argv[0];
   app::daemon& daemon = app::daemon::instance();  ///< The daemon is a singleton
-  std::stop_source stopAppContext;                ///< stop token for the main loop
   app::daemonConfig daemonConfig;
   ThreadManager threadManager;
 
@@ -311,7 +310,7 @@ int main(int argc, char** argv) {
   }
 
   // set token to stop all workers
-  stopAppContext.request_stop();
+  threadManager.stopSource().request_stop();
 
   // Terminate appManager.getScheduler() after done
   std::cout << "Terminating the daemon process...\n";
