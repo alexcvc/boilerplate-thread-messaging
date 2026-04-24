@@ -26,11 +26,6 @@ enum class handleConsoleType {
   exit,
 };
 
-struct TaskEvent {
-  std::mutex event_mutex;
-  std::condition_variable event_condition;
-};
-
 //----------------------------------------------------------------------------
 // Prototypes
 //----------------------------------------------------------------------------
