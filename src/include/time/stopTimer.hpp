@@ -1,15 +1,3 @@
-/* SPDX-License-Identifier: A-EBERLE */
-/****************************************************************************\
-**                   _        _____ _               _                      **
-**                  / \      | ____| |__   ___ _ __| | ___                 **
-**                 / _ \     |  _| | '_ \ / _ \ '__| |/ _ \                **
-**                / ___ \ _  | |___| |_) |  __/ |  | |  __/                **
-**               /_/   \_(_) |_____|_.__/ \___|_|  |_|\___|                **
-**                                                                         **
-*****************************************************************************
-** Copyright (c) 2010 - 2025 A. Eberle GmbH & Co. KG. All rights reserved. **
-\****************************************************************************/
-
 #pragma once
 
 //-----------------------------------------------------------------------------
@@ -26,17 +14,17 @@
  * Timer allows setting timeout and to check elapsed of timer
  *
  */
-class StopTimer {
+class stopTimer {
  public:
   /** types */
   using Clock = std::chrono::steady_clock;
-  using TimePoint = std::chrono::time_point<StopTimer::Clock, std::chrono::milliseconds>;
+  using TimePoint = std::chrono::time_point<stopTimer::Clock, std::chrono::milliseconds>;
 
   /**
    * @brief constructors
    */
-  StopTimer() = default;
-  StopTimer(std::chrono::milliseconds timeout) : m_timeout_duration(timeout) {}
+  stopTimer() = default;
+  stopTimer(std::chrono::milliseconds timeout) : m_timeout_duration(timeout) {}
 
   /**
    * @brief get timeout

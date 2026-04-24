@@ -3,22 +3,23 @@ set(TargetName threadMsg)
 
 ### List of CPP (source) library files.
 set(${TargetName}_SRC
-   src/Daemon.cpp
+   src/daemon.cpp
    src/main.cpp
 )
 
 set(${TargetName}_HDR
-   include/messaging/Sender.hpp
-   include/messaging/Receiver.hpp
-   include/messaging/Message.hpp
-   include/messaging/MessageQueue.hpp
-   include/threading/SpscRingBuffer.hpp
-   include/threading/ThreadSafeQueue.hpp
-   include/time/StopTimer.hpp
-   include/time/TimeUtilities.hpp
-   include/Daemon.hpp
-   include/DaemonConfig.hpp
-   include/WorkerBase.hpp
+   include/messaging/messageSender.hpp
+   include/messaging/messageReceiver.hpp
+   include/messaging/messageBase.hpp
+   include/messaging/messageQueue.hpp
+   include/taskBase.hpp
+   include/testThreads.hpp
+   include/threading/spScRingBuffer.hpp
+   include/threading/threadSafeQueue.hpp
+   include/time/stopTimer.hpp
+   include/daemon.hpp
+   include/daemonConfig.hpp
+   include/workerBase.hpp
 )
 
 #######################################################
@@ -27,6 +28,8 @@ set(${TargetName}_HDR
 add_executable(${TargetName}
    ${${TargetName}_SRC}
    ${${TargetName}_HDR}
+   include/threadManager.hpp
+   include/dataTypes.hpp
 )
 
 target_link_options(${TargetName}

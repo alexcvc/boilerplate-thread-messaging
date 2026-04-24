@@ -13,14 +13,14 @@
 // Declarations
 //----------------------------------------------------------------------------
 namespace app {
-class Daemon {
+class daemon {
  public:
   // Do not allow copy
-  Daemon(Daemon const&) = delete;
-  void operator=(Daemon const&) = delete;
-  Daemon(Daemon&&) = delete;
-  Daemon& operator=(Daemon&&) = delete;
-  ~Daemon() = default;
+  daemon(daemon const&) = delete;
+  void operator=(daemon const&) = delete;
+  daemon(daemon&&) = delete;
+  daemon& operator=(daemon&&) = delete;
+  ~daemon() = default;
 
   /**
    * @brief The state of the daemon.
@@ -40,8 +40,8 @@ class Daemon {
    * @brief Gets the instance of the daemon.
    * @return The instance of the daemon.
    */
-  static Daemon& instance() {
-    static Daemon instance;
+  static daemon& instance() {
+    static daemon instance;
     return instance;
   }
 
@@ -156,7 +156,7 @@ class Daemon {
   bool makeDaemon(const std::string& pidFileName);
 
  private:
-  Daemon();
+  daemon();
 
   /**
    * @brief Performs the reload if required.

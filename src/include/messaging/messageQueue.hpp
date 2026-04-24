@@ -6,8 +6,7 @@
 #include <mutex>
 #include <queue>
 
-#include "Message.hpp"
-#include "spdlog/spdlog.h"
+#include "messageBase.hpp"
 
 namespace messaging {
 
@@ -86,7 +85,7 @@ class MessageQueue {
       std::scoped_lock lock(m_mutex);
       m_queue.push(std::make_shared<MessageWrapper<T>>(msg));
     }
-    m_conditionVariable.notify_all();
+    m_conditionVariable.notify_one();
   }
 
   /**
@@ -104,7 +103,7 @@ class MessageQueue {
       std::scoped_lock lock(m_mutex);
       m_queue.push(std::move(msgPtr));
     }
-    m_conditionVariable.notify_all();
+    m_conditionVariable.notify_one();
   }
 
   /**
@@ -129,7 +128,6 @@ class MessageQueue {
   [[nodiscard]] std::shared_ptr<MessageBase> wait() noexcept {
     std::unique_lock lock(m_mutex);
     m_conditionVariable.wait(lock, [&] {
-      spdlog::trace("size of the queue: {}", m_queue.size());
       return !m_queue.empty();
     });
     return pop();

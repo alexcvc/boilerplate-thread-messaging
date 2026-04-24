@@ -10,10 +10,16 @@
 #include <iostream>
 #include <thread>
 
-#include "Daemon.hpp"
-#include "DaemonConfig.hpp"
+#include "daemon.hpp"
+#include "daemonConfig.hpp"
+#include "memoryUtils.hpp"
+#include "testThreads.hpp"
+#include "threadManager.hpp"
 
 using namespace std::chrono_literals;
+
+static const char* g_programName = "threadMsg";
+
 //----------------------------------------------------------------------------
 // Defines and Macros
 //----------------------------------------------------------------------------
@@ -24,6 +30,13 @@ using namespace std::chrono_literals;
 enum class handleConsoleType {
   none,
   exit,
+  stop,
+  restart,
+  terminate,
+  stopObserving,
+  startObserving,
+  stressMode,
+  setNormalMode
 };
 
 //----------------------------------------------------------------------------
@@ -90,7 +103,7 @@ void HandleOptionArgument(const char* option, const char* argument, const char* 
  * @param argv The array of command line argument strings.
  * @param config
  */
-static void ProcessCommandLine(int argc, char* argv[], app::DaemonConfig& config) {
+static void ProcessCommandLine(int argc, char* argv[], app::daemonConfig& config) {
   const char* help_options = "h?vD";
   const option long_options[] = {
       {"help", no_argument, nullptr, 0},
@@ -146,13 +159,34 @@ handleConsoleType HandleConsole() {
   switch (key) {
     case 'q':
       return handleConsoleType::exit;
+    case 's':
+      return handleConsoleType::stop;
+    case 'r':
+      return handleConsoleType::restart;
+    case 't':
+      return handleConsoleType::terminate;
+    case 'p':
+      return handleConsoleType::stopObserving;
+    case 'o':
+      return handleConsoleType::startObserving;
+    case 'x':
+      return handleConsoleType::stressMode;
+    case 'n':
+      return handleConsoleType::setNormalMode;
     case 'v':
-      ShowVersion(program_invocation_short_name);
+      ShowVersion(g_programName);
       break;
     case '?':
     case 'h':
       fprintf(stderr, "Test console:\n");
       fprintf(stderr, " q   -  quit from application.\n");
+      fprintf(stderr, " s   -  stop all threads.\n");
+      fprintf(stderr, " r   -  restart all threads.\n");
+      fprintf(stderr, " t   -  terminate (stop & clear) all threads.\n");
+      fprintf(stderr, " p   -  stop observing for 60 sec.\n");
+      fprintf(stderr, " o   -  start observing in 1 sec.\n");
+      fprintf(stderr, " x   -  stress mode (100 ms / 20 s, then auto-revert to 2 s).\n");
+      fprintf(stderr, " n   -  set normal mode (exit stress, 1 s interval).\n");
       fprintf(stderr, " v   -  version\n");
       fprintf(stderr, " h|? -  this information.\n");
       break;
@@ -166,18 +200,22 @@ handleConsoleType HandleConsole() {
  * @brief This is the main entry point for the application.
  */
 int main(int argc, char** argv) {
-  app::Daemon& daemon = app::Daemon::instance();  ///< The daemon is a singleton
-  std::stop_source stopAppContext;             ///< stop token for the main loop
-  app::DaemonConfig daemonConfig;
+  g_programName = argv[0];
+  app::daemon& daemon = app::daemon::instance();  ///< The daemon is a singleton
+  std::stop_source stopAppContext;                ///< stop token for the main loop
+  app::daemonConfig daemonConfig;
+  ThreadManager threadManager;
+
   //----------------------------------------------------------
   // set in daemon all handlers
   //----------------------------------------------------------
   // start
   daemon.setStartFunction([&]() {
-    return true;
+    return threadManager.start();
   });
   // stop
   daemon.setCloseFunction([&]() {
+    threadManager.stopAndWait();
     return true;
   });
   // reload
@@ -211,6 +249,9 @@ int main(int argc, char** argv) {
   //----------------------------------------------------------
   // start application workers
   //----------------------------------------------------------
+
+  threadManager.initTestChain();
+
   if (!daemon.startAll()) {
     std::cerr << "Error starting the daemon." << std::endl;
     return EXIT_FAILURE;
@@ -235,7 +276,30 @@ int main(int argc, char** argv) {
       auto result = HandleConsole();
       switch (result) {
         case handleConsoleType::exit:
-          daemon.setState(app::Daemon::State::Stop);
+          daemon.setState(app::daemon::State::Stop);
+          break;
+        case handleConsoleType::stop:
+          threadManager.stopAllThreads();
+          break;
+        case handleConsoleType::restart:
+          threadManager.restartAllThreads();
+          break;
+        case handleConsoleType::terminate:
+          threadManager.terminateAllThreads();
+          break;
+        case handleConsoleType::stopObserving:
+          threadManager.sendObserverCommand({ObserverCommand::Type::StopObserving, std::chrono::seconds{60}});
+          break;
+        case handleConsoleType::startObserving:
+          threadManager.sendObserverCommand({ObserverCommand::Type::StartObserving, std::chrono::seconds{1}});
+          break;
+        case handleConsoleType::stressMode:
+          utils::printMemoryUsage("Before Stress");
+          threadManager.sendStressModeCommand();
+          break;
+        case handleConsoleType::setNormalMode:
+          threadManager.sendNormalModeCommand();
+          utils::printMemoryUsage("After Stress (Manual)");
           break;
         case handleConsoleType::none:
         default:

@@ -1,10 +1,11 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <typeinfo>
 
-#include "messaging/MessageQueue.hpp"
+#include "messaging/messageQueue.hpp"
 
 namespace messaging {
 
@@ -124,7 +125,7 @@ class Sender {
       return true;
     }
 
-    spdlog::error("Sender: no queue associated with the sender of message {}", messageTypeName);
+    std::cerr << "Sender: no queue for message " << messageTypeName << '\n';
     return false;
   }
 };
